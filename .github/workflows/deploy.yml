@@ -32,7 +32,7 @@ jobs:
         with:
           service: ${{ env.SERVICE_NAME }}
           region: ${{ env.REGION }}
-          source: ./apps/api
+          source: .
           env_vars: |
             DATABASE_URL=${{ secrets.DATABASE_URL }}
             WEBHOOK_SECRET_GITHUB=${{ secrets.WEBHOOK_SECRET_GITHUB }}
