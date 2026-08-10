@@ -8,10 +8,12 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
+import { ApiTags } from '@nestjs/swagger';
 import { EventsService } from '../events/events.service';
 import { GithubEventDto } from './dto/github-event.dto';
 import { GithubSignatureGuard } from './guards/github-signature.guard';
 
+@ApiTags('webhooks')
 @Controller('webhooks')
 export class WebhooksController {
   private readonly logger = new Logger(WebhooksController.name);
