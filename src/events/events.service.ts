@@ -2,11 +2,21 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { WebhookEvent } from './entities/webhook-event.entity';
+import { GithubEventDto } from '../webhooks/dto/github-event.dto';
 
 export type IngestResult = { status: 'created' | 'duplicate'; id?: string };
 
 // Postgres error code for a unique constraint violation.
 const POSTGRES_UNIQUE_VIOLATION = '23505';
+
+function isUniqueViolation(err: unknown): boolean {
+  return (
+    typeof err === 'object' &&
+    err !== null &&
+    'code' in err &&
+    (err as { code?: unknown }).code === POSTGRES_UNIQUE_VIOLATION
+  );
+}
 
 @Injectable()
 export class EventsService {
@@ -26,7 +36,7 @@ export class EventsService {
   async ingestGithubEvent(
     deliveryId: string,
     eventType: string,
-    payload: Record<string, any>,
+    payload: GithubEventDto,
   ): Promise<IngestResult> {
     const normalized = this.transform(deliveryId, eventType, payload);
 
@@ -34,8 +44,8 @@ export class EventsService {
       const saved = await this.eventsRepository.save(normalized);
       this.logger.log(`Ingested ${eventType} event (delivery ${deliveryId})`);
       return { status: 'created', id: saved.id };
-    } catch (err: any) {
-      if (err?.code === POSTGRES_UNIQUE_VIOLATION) {
+    } catch (err: unknown) {
+      if (isUniqueViolation(err)) {
         this.logger.warn(`Duplicate delivery ${deliveryId} — already ingested, skipping`);
         return { status: 'duplicate' };
       }
@@ -46,7 +56,7 @@ export class EventsService {
   private transform(
     deliveryId: string,
     eventType: string,
-    payload: Record<string, any>,
+    payload: GithubEventDto,
   ): Partial<WebhookEvent> {
     return {
       provider: 'github',

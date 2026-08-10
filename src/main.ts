@@ -33,4 +33,7 @@ async function bootstrap() {
 
   Logger.log(`API listening on port ${port}`, 'Bootstrap');
 }
-bootstrap();
+bootstrap().catch((err: unknown) => {
+  Logger.error(err, undefined, 'Bootstrap');
+  process.exit(1);
+});

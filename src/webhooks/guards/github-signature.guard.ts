@@ -27,7 +27,7 @@ export class GithubSignatureGuard implements CanActivate {
   canActivate(context: ExecutionContext): boolean {
     const request = context.switchToHttp().getRequest<RequestWithRawBody>();
     const signature = request.headers['x-hub-signature-256'] as string | undefined;
-    const secret = this.configService.get<string>('GITHUB_WEBHOOK_SECRET');
+    const secret = this.configService.get<string>('WEBHOOK_SECRET_GITHUB');
 
     if (!secret) {
       // Fail closed: a misconfigured server should never accept unverified webhooks.
