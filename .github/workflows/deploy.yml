@@ -6,24 +6,24 @@ on:
 
 env:
   SERVICE_NAME: webhook-pipeline-api
-  REGION: us-central1
+  REGION: europe-west1
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      id-token: write # needed if you switch to Workload Identity Federation later
+      id-token: write # required so the job can mint the OIDC token WIF exchanges
     steps:
       - uses: actions/checkout@v4
 
-      # Simplest auth path: a service account key stored as a repo secret.
-      # For anything beyond a demo project, prefer Workload Identity
-      # Federation instead (google-github-actions/auth supports it) —
-      # it avoids a long-lived key sitting in GitHub Secrets entirely.
+      # Workload Identity Federation: no key file ever touches the runner.
+      # See the setup commands from earlier for how WIF_PROVIDER and
+      # WIF_SERVICE_ACCOUNT get created.
       - uses: google-github-actions/auth@v2
         with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
+          workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
+          service_account: ${{ secrets.WIF_SERVICE_ACCOUNT }}
 
       - uses: google-github-actions/setup-gcloud@v2
 
@@ -35,4 +35,4 @@ jobs:
           source: ./apps/api
           env_vars: |
             DATABASE_URL=${{ secrets.DATABASE_URL }}
-            GITHUB_WEBHOOK_SECRET=${{ secrets.GITHUB_WEBHOOK_SECRET }}
+            WEBHOOK_SECRET_GITHUB=${{ secrets.WEBHOOK_SECRET_GITHUB }}

@@ -61,7 +61,7 @@ end-to-end before deploying, either:
      Service Account User roles (see note in `deploy.yml` about using
      Workload Identity Federation instead, for anything beyond a demo)
    - `DATABASE_URL` — your Neon pooled connection string
-   - `GITHUB_WEBHOOK_SECRET` — the same secret you configure on the
+   - `WEBHOOK_SECRET_GITHUB` — the same secret you configure on the
      GitHub webhook itself
 3. Push to `main` — `.github/workflows/deploy.yml` builds and deploys to
    Cloud Run automatically.
