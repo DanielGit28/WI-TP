@@ -5,7 +5,7 @@ on:
     branches: [main]
 
 env:
-  SERVICE_NAME: webhook-pipeline-api
+  SERVICE_NAME: wi-tp
   REGION: europe-west1
 
 jobs:
