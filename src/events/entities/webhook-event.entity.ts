@@ -20,33 +20,42 @@ import {
 @Unique('UQ_provider_delivery', ['provider', 'deliveryId'])
 export class WebhookEvent {
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  id!: string;
 
   @Column()
   @Index()
-  provider: string; // e.g. 'github'
+  provider!: string; // e.g. 'github'
 
   @Column({ name: 'delivery_id' })
-  deliveryId: string; // provider's unique ID for this specific delivery attempt
+  deliveryId!: string; // provider's unique ID for this specific delivery attempt
 
   @Column({ name: 'event_type' })
   @Index()
-  eventType: string; // e.g. 'push', 'pull_request', 'issues'
+  eventType!: string; // e.g. 'push', 'pull_request', 'issues'
 
   @Column({ type: 'varchar', nullable: true })
-  action: string | null; // e.g. 'opened', 'closed' — present on many GitHub event types
+  action!: string | null; // e.g. 'opened', 'closed' — present on many GitHub event types
 
   @Column({ name: 'repository_name', type: 'varchar', nullable: true })
-  repositoryName: string | null;
+  repositoryName!: string | null;
 
   @Column({ name: 'sender_login', type: 'varchar', nullable: true })
-  senderLogin: string | null;
+  senderLogin!: string | null;
+
+  // Human-readable one-liner for feed display, e.g. "opened PR #42: Fix
+  // login bug" — computed per event type at ingest time so the frontend
+  // doesn't need to know GitHub's payload shape for every event type.
+  @Column({ type: 'varchar', nullable: true })
+  summary!: string | null;
+
+  @Column({ name: 'ref_name', type: 'varchar', nullable: true })
+  refName!: string | null; // branch/tag ref, e.g. 'main' — from push/create/delete events
 
   // Full original payload, preserved for auditability even though we've
   // pulled the fields above out into queryable columns.
   @Column({ name: 'raw_payload', type: 'jsonb' })
-  rawPayload: Record<string, unknown>;
+  rawPayload!: Record<string, unknown>;
 
   @CreateDateColumn({ name: 'received_at' })
-  receivedAt: Date;
+  receivedAt!: Date;
 }
