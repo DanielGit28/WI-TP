@@ -16,14 +16,27 @@ const GITHUB_URL_PATTERN =
   /^(?:https?:\/\/)?(?:www\.)?github\.com\/([^/\s]+)\/([^/\s]+?)(?:\.git)?\/?$/;
 const SHORTHAND_PATTERN = /^([^/\s]+)\/([^/\s]+)$/;
 
+// GitHub's actual username/repo-name character rules, not just "no
+// slashes" — rejects '..', '?', '#', etc. before they ever reach the
+// GitHub API request built from these values.
+const OWNER_PATTERN = /^[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,37}[a-zA-Z0-9])?$/;
+const REPO_NAME_PATTERN = /^(?!\.{1,2}$)[a-zA-Z0-9._-]{1,100}$/;
+
+const INVALID_REPO_URL_MESSAGE =
+  'repoUrl must be a GitHub URL or "owner/repo" (e.g. "octocat/hello-world")';
+
 function parseRepoUrl(repoUrl: string): { owner: string; repo: string } {
   const match = GITHUB_URL_PATTERN.exec(repoUrl) ?? SHORTHAND_PATTERN.exec(repoUrl);
   if (!match) {
-    throw new BadRequestException(
-      'repoUrl must be a GitHub URL or "owner/repo" (e.g. "octocat/hello-world")',
-    );
+    throw new BadRequestException(INVALID_REPO_URL_MESSAGE);
   }
-  return { owner: match[1], repo: match[2] };
+
+  const [, owner, repo] = match;
+  if (!OWNER_PATTERN.test(owner) || !REPO_NAME_PATTERN.test(repo)) {
+    throw new BadRequestException(INVALID_REPO_URL_MESSAGE);
+  }
+
+  return { owner, repo };
 }
 
 @Injectable()

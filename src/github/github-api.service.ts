@@ -20,6 +20,14 @@ export interface GithubWebhook {
 
 const GITHUB_API_BASE = 'https://api.github.com';
 
+// owner/repo ultimately come from user-supplied input (POST /repositories
+// repoUrl). Encoding each segment keeps them confined to a single path
+// segment — an embedded '/', '?', or '#' can't redirect the request to a
+// different GitHub API path than the one intended.
+function repoPath(owner: string, repo: string): string {
+  return `${encodeURIComponent(owner)}/${encodeURIComponent(repo)}`;
+}
+
 /**
  * Thin wrapper around the handful of GitHub REST/OAuth calls this app
  * needs. Uses Node's built-in global fetch rather than adding an HTTP
@@ -55,7 +63,7 @@ export class GithubApiService {
   }
 
   async getRepo(accessToken: string, owner: string, repo: string): Promise<GithubRepo> {
-    return this.get<GithubRepo>(`/repos/${owner}/${repo}`, accessToken);
+    return this.get<GithubRepo>(`/repos/${repoPath(owner, repo)}`, accessToken);
   }
 
   async createWebhook(
@@ -65,7 +73,7 @@ export class GithubApiService {
     url: string,
     secret: string,
   ): Promise<GithubWebhook> {
-    return this.post<GithubWebhook>(`/repos/${owner}/${repo}/hooks`, accessToken, {
+    return this.post<GithubWebhook>(`/repos/${repoPath(owner, repo)}/hooks`, accessToken, {
       name: 'web',
       active: true,
       events: ['*'],
@@ -79,10 +87,10 @@ export class GithubApiService {
     repo: string,
     hookId: number,
   ): Promise<void> {
-    const response = await fetch(`${GITHUB_API_BASE}/repos/${owner}/${repo}/hooks/${hookId}`, {
-      method: 'DELETE',
-      headers: this.headers(accessToken),
-    });
+    const response = await fetch(
+      `${GITHUB_API_BASE}/repos/${repoPath(owner, repo)}/hooks/${encodeURIComponent(hookId)}`,
+      { method: 'DELETE', headers: this.headers(accessToken) },
+    );
     if (!response.ok && response.status !== 404) {
       throw new InternalServerErrorException(
         `Failed to delete GitHub webhook: ${response.status} ${response.statusText}`,
