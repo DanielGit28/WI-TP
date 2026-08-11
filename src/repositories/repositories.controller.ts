@@ -15,14 +15,21 @@ import { Repository } from './entities/repository.entity';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUserId } from '../auth/decorators/current-user-id.decorator';
 
-// webhookSecret never leaves this service — it's only used internally by
-// GithubSignatureGuard to verify deliveries.
-type PublicRepository = Omit<Repository, 'webhookSecret'>;
+// Explicit field whitelist rather than Omit<Repository, 'webhookSecret'>
+// — an Omit still carries `owner: User` in its type, which would let a
+// decrypted accessToken (the `from` transformer runs on hydration) ride
+// along in the response the moment anything eager-loads that relation.
+// webhookSecret itself never leaves this service either way — it's only
+// used internally by GithubSignatureGuard to verify deliveries.
+type PublicRepository = Pick<
+  Repository,
+  'id' | 'ownerUserId' | 'githubRepoId' | 'fullName' | 'visibility' | 'webhookId' | 'createdAt'
+>;
 
 function toPublicRepository(repository: Repository): PublicRepository {
-  const { id, ownerUserId, owner, githubRepoId, fullName, visibility, webhookId, createdAt } =
+  const { id, ownerUserId, githubRepoId, fullName, visibility, webhookId, createdAt } =
     repository;
-  return { id, ownerUserId, owner, githubRepoId, fullName, visibility, webhookId, createdAt };
+  return { id, ownerUserId, githubRepoId, fullName, visibility, webhookId, createdAt };
 }
 
 @ApiTags('repositories')

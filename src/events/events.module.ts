@@ -3,10 +3,10 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { WebhookEvent } from './entities/webhook-event.entity';
 import { EventsController } from './events.controller';
 import { EventsService } from './events.service';
-import { AuthModule } from '../auth/auth.module';
+import { JwtGuardsModule } from '../auth/jwt-guards.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([WebhookEvent]), AuthModule],
+  imports: [TypeOrmModule.forFeature([WebhookEvent]), JwtGuardsModule],
   controllers: [EventsController],
   providers: [EventsService],
   exports: [EventsService],
