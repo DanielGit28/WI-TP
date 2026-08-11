@@ -3,9 +3,12 @@ import {
   CreateDateColumn,
   Entity,
   Index,
+  JoinColumn,
+  ManyToOne,
   PrimaryGeneratedColumn,
   Unique,
 } from 'typeorm';
+import { Repository } from '../../repositories/entities/repository.entity';
 
 /**
  * Normalized representation of an ingested webhook event.
@@ -38,6 +41,18 @@ export class WebhookEvent {
 
   @Column({ name: 'repository_name', type: 'varchar', nullable: true })
   repositoryName!: string | null;
+
+  // Nullable: events ingested before per-repo registration existed (or
+  // whose repo has since been deleted) have no matching Repository row.
+  // Those are treated as publicly visible — there's no owner to scope
+  // them to. See EventsService.findEvents.
+  @Column({ name: 'repository_id', type: 'uuid', nullable: true })
+  @Index()
+  repositoryId!: string | null;
+
+  @ManyToOne(() => Repository, { onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'repository_id' })
+  repository!: Repository | null;
 
   @Column({ name: 'sender_login', type: 'varchar', nullable: true })
   senderLogin!: string | null;

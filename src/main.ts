@@ -1,6 +1,7 @@
 import { Logger, ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import cookieParser from 'cookie-parser';
 import { AppModule } from './app.module';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
@@ -14,9 +15,15 @@ async function bootstrap() {
   // isn't guaranteed to produce identical bytes.
   const app = await NestFactory.create(AppModule, { rawBody: true });
 
+  app.use(cookieParser()); // reads the OAuth CSRF-state cookie in AuthController
+
   // Allows a frontend running on a different origin (e.g. localhost:3000)
-  // to call this API directly from the browser.
-  app.enableCors();
+  // to call this API directly from the browser. No frontend is deployed
+  // yet, so stay permissive locally — once FRONTEND_URL points at a real
+  // origin, restrict to it rather than allowing any origin to call an API
+  // that now handles auth/tokens.
+  const frontendUrl = process.env.FRONTEND_URL;
+  app.enableCors(frontendUrl ? { origin: frontendUrl } : undefined);
 
   app.useGlobalPipes(
     new ValidationPipe({
@@ -36,6 +43,7 @@ async function bootstrap() {
       'Receives GitHub webhooks, verifies their signature, normalizes the payload, and loads it into Postgres.',
     )
     .setVersion('0.1.0')
+    .addBearerAuth() // registers the 'bearer' scheme @ApiBearerAuth() on RepositoriesController refers to — without this the Authorize button never appears
     .build();
   const swaggerDocument = SwaggerModule.createDocument(app, swaggerConfig);
   SwaggerModule.setup('/', app, swaggerDocument);
