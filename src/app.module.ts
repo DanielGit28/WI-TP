@@ -3,6 +3,9 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { EventsModule } from './events/events.module';
 import { WebhooksModule } from './webhooks/webhooks.module';
+import { AuthModule } from './auth/auth.module';
+import { UsersModule } from './users/users.module';
+import { RepositoriesModule } from './repositories/repositories.module';
 
 @Module({
   imports: [
@@ -29,6 +32,9 @@ import { WebhooksModule } from './webhooks/webhooks.module';
     }),
     EventsModule,
     WebhooksModule,
+    AuthModule,
+    UsersModule,
+    RepositoriesModule,
   ],
 })
 export class AppModule {}

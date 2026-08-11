@@ -6,12 +6,14 @@ import {
   Headers,
   Logger,
   Post,
+  Req,
   UseGuards,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { EventsService } from '../events/events.service';
 import { GithubEventDto } from './dto/github-event.dto';
 import { GithubSignatureGuard } from './guards/github-signature.guard';
+import { RequestWithGithubDelivery } from './guards/github-signature.guard';
 
 @ApiTags('webhooks')
 @Controller('webhooks')
@@ -28,6 +30,7 @@ export class WebhooksController {
     @Headers('x-github-event') eventType: string,
     @Headers('x-github-delivery') deliveryId: string,
     @Body() payload: GithubEventDto,
+    @Req() request: RequestWithGithubDelivery,
   ) {
     if (!eventType || !deliveryId) {
       throw new BadRequestException(
@@ -35,10 +38,15 @@ export class WebhooksController {
       );
     }
 
+    // Set by GithubSignatureGuard, which already looked this repo up to
+    // pick the right secret — no need to query it again here.
+    const repositoryId = request.repository?.id ?? null;
+
     const result = await this.eventsService.ingestGithubEvent(
       deliveryId,
       eventType,
       payload,
+      repositoryId,
     );
 
     this.logger.log(`${eventType} webhook -> ${result.status}`);

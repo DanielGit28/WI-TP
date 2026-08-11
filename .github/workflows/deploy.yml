@@ -33,6 +33,14 @@ jobs:
           service: ${{ env.SERVICE_NAME }}
           region: ${{ env.REGION }}
           source: .
+          # Repo secrets are named GH_OAUTH_* rather than GITHUB_OAUTH_* —
+          # GitHub Actions reserves the GITHUB_ prefix for its own secrets,
+          # so a repo secret can't use it. The app's env var name (left
+          # side) is unaffected.
           env_vars: |
             DATABASE_URL=${{ secrets.DATABASE_URL }}
-            WEBHOOK_SECRET_GITHUB=${{ secrets.WEBHOOK_SECRET_GITHUB }}
+            GITHUB_OAUTH_CLIENT_ID=${{ secrets.GH_OAUTH_CLIENT_ID }}
+            GITHUB_OAUTH_CLIENT_SECRET=${{ secrets.GH_OAUTH_CLIENT_SECRET }}
+            JWT_SECRET=${{ secrets.JWT_SECRET }}
+            APP_BASE_URL=${{ secrets.APP_BASE_URL }}
+            FRONTEND_URL=${{ secrets.FRONTEND_URL }}

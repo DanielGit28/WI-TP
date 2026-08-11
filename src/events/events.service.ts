@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { LessThan, Repository } from 'typeorm';
+import { Brackets, Repository, SelectQueryBuilder } from 'typeorm';
 import { WebhookEvent } from './entities/webhook-event.entity';
 import { GithubEventDto } from '../webhooks/dto/github-event.dto';
 import { FindEventsDto } from './dto/find-events.dto';
@@ -54,8 +54,9 @@ export class EventsService {
     deliveryId: string,
     eventType: string,
     payload: GithubEventDto,
+    repositoryId: string | null,
   ): Promise<IngestResult> {
-    const normalized = this.transform(deliveryId, eventType, payload);
+    const normalized = this.transform(deliveryId, eventType, payload, repositoryId);
 
     try {
       const saved = await this.eventsRepository.save(normalized);
@@ -74,6 +75,7 @@ export class EventsService {
     deliveryId: string,
     eventType: string,
     payload: GithubEventDto,
+    repositoryId: string | null,
   ): Partial<WebhookEvent> {
     return {
       provider: 'github',
@@ -81,6 +83,7 @@ export class EventsService {
       eventType,
       action: payload.action ?? null,
       repositoryName: payload.repository?.full_name ?? null,
+      repositoryId,
       senderLogin: payload.sender?.login ?? null,
       summary: this.buildSummary(eventType, payload),
       refName: this.buildRefName(eventType, payload),
@@ -142,23 +145,51 @@ export class EventsService {
     return ref.replace(/^refs\/(heads|tags)\//, '');
   }
 
-  async findEvents(query: FindEventsDto): Promise<WebhookEvent[]> {
-    const limit = Math.min(query.limit ?? DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE);
-
-    return this.eventsRepository.find({
-      where: {
-        ...(query.eventType && { eventType: query.eventType }),
-        ...(query.repository && { repositoryName: query.repository }),
-        ...(query.before && { receivedAt: LessThan(new Date(query.before)) }),
-      },
-      order: { receivedAt: 'DESC' },
-      take: limit,
-    });
+  // Visibility rule: an event is visible if its repo is public, if it has
+  // no matched repo at all (legacy events predating per-repo registration
+  // — no owner to restrict to), or if the caller owns the repo. Applied
+  // as one bracketed OR clause so it correctly ANDs with the other filters
+  // below rather than opening the whole query up.
+  private applyVisibilityScope(
+    qb: SelectQueryBuilder<WebhookEvent>,
+    currentUserId?: string,
+  ) {
+    qb.leftJoin('event.repository', 'repository').where(
+      new Brackets((sub) => {
+        sub
+          .where('event.repositoryId IS NULL')
+          .orWhere('repository.visibility = :publicVisibility', { publicVisibility: 'public' });
+        if (currentUserId) {
+          sub.orWhere('repository.ownerUserId = :currentUserId', { currentUserId });
+        }
+      }),
+    );
   }
 
-  async getStats(): Promise<EventTypeCount[]> {
-    const rows = await this.eventsRepository
-      .createQueryBuilder('event')
+  async findEvents(query: FindEventsDto, currentUserId?: string): Promise<WebhookEvent[]> {
+    const limit = Math.min(query.limit ?? DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE);
+
+    const qb = this.eventsRepository.createQueryBuilder('event');
+    this.applyVisibilityScope(qb, currentUserId);
+
+    if (query.eventType) {
+      qb.andWhere('event.eventType = :eventType', { eventType: query.eventType });
+    }
+    if (query.repository) {
+      qb.andWhere('event.repositoryName = :repository', { repository: query.repository });
+    }
+    if (query.before) {
+      qb.andWhere('event.receivedAt < :before', { before: new Date(query.before) });
+    }
+
+    return qb.orderBy('event.receivedAt', 'DESC').take(limit).getMany();
+  }
+
+  async getStats(currentUserId?: string): Promise<EventTypeCount[]> {
+    const qb = this.eventsRepository.createQueryBuilder('event');
+    this.applyVisibilityScope(qb, currentUserId);
+
+    const rows = await qb
       .select('event.event_type', 'eventType')
       .addSelect('COUNT(*)', 'count')
       .groupBy('event.event_type')
