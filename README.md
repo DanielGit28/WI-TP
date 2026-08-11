@@ -18,7 +18,7 @@ GitHub → [Guard: verify signature] → [Pipe: validate DTO] → [Service: tran
 ## Local setup
 
 ```bash
-cp .env.example .env      # then fill in DATABASE_URL, GitHub OAuth app credentials, JWT_SECRET
+cp .env.example .env      # then fill in DATABASE_URL, GitHub OAuth app credentials, JWT_SECRET, TOKEN_ENCRYPTION_KEY
 npm install
 npm run start:dev
 ```
@@ -59,10 +59,10 @@ generated at registration time.
 1. Push this repo to GitHub.
 2. Add repo secrets (Settings → Secrets and variables → Actions) —
    `DATABASE_URL`, `GH_OAUTH_CLIENT_ID`, `GH_OAUTH_CLIENT_SECRET`,
-   `JWT_SECRET`, `APP_BASE_URL`, `FRONTEND_URL`, plus `WIF_PROVIDER` /
-   `WIF_SERVICE_ACCOUNT` for the Workload Identity Federation deploy auth
-   (see the comment in `deploy.yml` for how those get created — no GCP key
-   file is used).
+   `JWT_SECRET`, `TOKEN_ENCRYPTION_KEY`, `APP_BASE_URL`, `FRONTEND_URL`,
+   plus `WIF_PROVIDER` / `WIF_SERVICE_ACCOUNT` for the Workload Identity
+   Federation deploy auth (see the comment in `deploy.yml` for how those
+   get created — no GCP key file is used).
 3. Push to `main` — `.github/workflows/deploy.yml` builds and deploys to
    Cloud Run automatically.
 4. Update the OAuth App's callback URL to
@@ -91,9 +91,11 @@ src/
   it can alter/drop columns based on entity changes. Would switch to
   TypeORM migrations before this handles real user accounts beyond local
   testing.
-- `User.accessToken` (the GitHub OAuth token) is stored in plaintext.
-  Encrypting it at rest — e.g. `pgcrypto` or an application-level key —
-  is the next thing to fix before this is more than a personal project.
+- `User.accessToken` (the GitHub OAuth token, `repo`-scoped) is encrypted
+  at rest with AES-256-GCM via a TypeORM column transformer (see
+  `src/common/crypto/token-cipher.ts`), keyed by `TOKEN_ENCRYPTION_KEY`.
+  The key itself still lives in a plain env var rather than a real KMS —
+  fine for a personal project, not for a multi-user product.
 - Only repos the authenticated user has **admin access to** can be
   registered — GitHub doesn't allow installing a webhook on a repo you
   don't administer. Watching an arbitrary public repo you don't own would
