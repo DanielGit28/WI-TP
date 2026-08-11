@@ -42,5 +42,6 @@ jobs:
             GITHUB_OAUTH_CLIENT_ID=${{ secrets.GH_OAUTH_CLIENT_ID }}
             GITHUB_OAUTH_CLIENT_SECRET=${{ secrets.GH_OAUTH_CLIENT_SECRET }}
             JWT_SECRET=${{ secrets.JWT_SECRET }}
+            TOKEN_ENCRYPTION_KEY=${{ secrets.TOKEN_ENCRYPTION_KEY }}
             APP_BASE_URL=${{ secrets.APP_BASE_URL }}
             FRONTEND_URL=${{ secrets.FRONTEND_URL }}
