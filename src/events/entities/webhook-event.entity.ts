@@ -71,6 +71,14 @@ export class WebhookEvent {
   @Column({ name: 'raw_payload', type: 'jsonb' })
   rawPayload!: Record<string, unknown>;
 
-  @CreateDateColumn({ name: 'received_at' })
+  // Explicit timestamptz — @CreateDateColumn defaults to Postgres
+  // `timestamp` (no time zone) here, which is ambiguous: node-postgres
+  // reads a naive timestamp back using the *reading process's* local
+  // timezone, not the timezone it was written in. Since Postgres's own
+  // now() (this column's insert-time default) runs in the session's UTC
+  // timezone, that mismatch silently shifted every receivedAt by the
+  // app server's UTC offset. timestamptz stores an unambiguous instant
+  // and round-trips correctly regardless of either side's local timezone.
+  @CreateDateColumn({ name: 'received_at', type: 'timestamptz' })
   receivedAt!: Date;
 }
