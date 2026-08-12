@@ -21,6 +21,7 @@ GitHub → [Guard: verify signature] → [Pipe: validate DTO] → [Service: tran
 cp .env.example .env      # then fill in DATABASE_URL, GitHub OAuth app credentials, JWT_SECRET, TOKEN_ENCRYPTION_KEY
 npm install
 npm run start:dev
+npm run test
 ```
 
 The app listens on `http://localhost:8080`. Swagger UI (interactive API
