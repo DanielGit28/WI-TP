@@ -25,6 +25,9 @@ export class User {
   @Column({ name: 'access_token', transformer: { to: encrypt, from: decrypt } })
   accessToken!: string;
 
-  @CreateDateColumn({ name: 'created_at' })
+  // timestamptz, not the @CreateDateColumn default — see the comment on
+  // WebhookEvent.receivedAt for why a plain `timestamp` silently
+  // corrupts values across machines in different timezones.
+  @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
   createdAt!: Date;
 }
