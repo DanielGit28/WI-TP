@@ -21,3 +21,8 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npm run build
+      - run: npm run test
+      # e2e tests spin up their own ephemeral Postgres via Testcontainers
+      # (ubuntu-latest runners have Docker preinstalled) and generate their
+      # own dummy config in-process — no secrets or services: block needed.
+      - run: npm run test:e2e
