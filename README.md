@@ -22,6 +22,7 @@ cp .env.example .env      # then fill in DATABASE_URL, GitHub OAuth app credenti
 npm install
 npm run start:dev
 npm run test
+npm run test:e2e
 ```
 
 The app listens on `http://localhost:8080`. Swagger UI (interactive API
